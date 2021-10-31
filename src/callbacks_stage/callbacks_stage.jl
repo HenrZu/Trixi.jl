@@ -6,6 +6,7 @@
 
 
 include("positivity_zhang_shu.jl")
+include("positivity_alpha_rueda_gassner.jl")
 
 
 end # @muladd
