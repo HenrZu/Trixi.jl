@@ -148,11 +148,15 @@
                   # Newton's method
                   # for Newton we need ∂p/∂α which can be calculated using the chain rule
                   # ∂p/∂α =  ∂p/∂u * ∂u/∂α
-                  for i in 1:n_iterations
+                  for newton_stage in 1:n_iterations
                     #du_dα = dt_2 * (u_safe[:,k,element]- u_dg[:,k,element])
                     node_dg = (u[:,j,k,element] - alpha[element] * u_safe[:,j,k,element]) / (1 - alpha[element])
+
+                    v1 = u[2,j,k,element] / u[1,j,k,element]
+                    v2 = u[3,j,k,element] / u[1,j,k,element]
+                    
                     du_dα =  Δts * (u_safe[:,j,k,element]- node_dg[:])
-                    dp_du = (equations.gamma -1) * [0.5 * sqrt(u[2,j,k,element]^2 + u[3,j,k,element]^2) [-u[2,j,k,element] -u[3,j,k,element]]  1]
+                    dp_du = (equations.gamma -1) * [0.5 * sqrt(v1^2 + v2^2) -v1 -v2 1]
                     dp_dα = dot(dp_du,du_dα)
 
                     if abs(dp_dα) < tolerance
@@ -164,12 +168,12 @@
                     # calc new u 
                     u_tmp[:,j,k,element]  = u[:,j,k,element] + tmp * (u_safe[:,j,k,element]- node_dg[:])
                     # get pressure value
-                    _, _, p = cons2prim(u_tmp[:,j,k,element], equations) 
-                    α_p = beta * p_safe - p
+                    _, _, p_newton = cons2prim(u_tmp[:,j,k,element], equations) 
+                    α_p = beta * p_safe - p_newton
                     if α_p <= 0
                         break
                     end
-                    if i == 10
+                    if newton_stage == 10
                         error("Number of Iterations ($n_iterations) not enough to correct pressure")
                     end
                   end
