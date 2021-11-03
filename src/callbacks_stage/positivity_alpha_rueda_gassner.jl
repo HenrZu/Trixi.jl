@@ -22,6 +22,11 @@
     s::Integer
     tolerance::Float64
     n_iterations::Integer
+    u_safe
+    node_dg
+    node_tmp
+    du_dα
+    dp_du
   end
   
 
@@ -37,9 +42,18 @@
 
     solver_dg = DGSEM(basis, surface_flux)
     semi_dg = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver_dg)
+    num_vars = 2 + ndims(mesh)
+    n_nodes = nnodes(solver_dg)
+    n_elements = nelements(semi.solver, semi.cache)
+    u_safe = zeros(num_vars * n_nodes^(ndims(mesh)) * n_elements)
+
+    node_dg = zeros(2 + ndims(mesh))
+    node_tmp = zeros(2 + ndims(mesh))
+    du_dα = zeros(2 + ndims(mesh))
+    dp_du = zeros(2 + ndims(mesh))
 
     # PositivityPreservingLimiterRuedaGassner(semi_fv, semi_dg, beta, variables, 1)
-    PositivityPreservingLimiterRuedaGassner(semi_fv, semi_dg, beta, variables, 1, 1e-15, 10)
+    PositivityPreservingLimiterRuedaGassner(semi_fv, semi_dg, beta, variables, 1, 1e-15, 10, u_safe, node_dg, node_tmp, du_dα, dp_du)
   end
 
   function (limiter!::PositivityPreservingLimiterRuedaGassner)(
