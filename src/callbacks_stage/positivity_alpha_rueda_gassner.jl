@@ -14,23 +14,21 @@
     [doi: 10.23967/wccm-eccomas.2020.038](https://doi.org/10.23967/wccm-eccomas.2020.038)
 
   """
-  mutable struct PositivityPreservingLimiterRuedaGassner{N, Variables<:NTuple{N,Any}}
-    semi_fv::AbstractSemidiscretization
-    semi_dg::AbstractSemidiscretization
-    beta::Float64
-    variables::Variables
-    s::Integer
-    tolerance::Float64
-    n_iterations::Integer
-    u_safe
-    node_dg
-    node_tmp
-    du_dα
-    dp_du
+  mutable struct PositivityPreservingLimiterRuedaGassner{RealT<:Real, Cache}
+    beta::RealT
+    stage::Int32
+    cache::Cache
   end
   
 
-  function PositivityPreservingLimiterRuedaGassner(semi::AbstractSemidiscretization; beta, variables)
+  function PositivityPreservingLimiterRuedaGassner(semi::AbstractSemidiscretization; beta)
+    cache = create_cache(semi)
+    PositivityPreservingLimiterRuedaGassner{typeof(beta), typeof(cache)}(beta, 1, cache)
+
+  end
+
+
+  function create_cache(semi::AbstractSemidiscretization)
     @unpack volume_flux_fv = semi.solver.volume_integral 
     @unpack basis = semi.solver 
     @unpack surface_flux = semi.solver.surface_integral
@@ -40,11 +38,13 @@
     solver_fv = DGSEM(basis, volume_flux_fv, volume_integral)
     semi_fv = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver_fv)
 
-    solver_dg = DGSEM(basis, surface_flux)
-    semi_dg = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver_dg)
+    tolerance = 1e-15
+    iterations_newton = 10
     num_vars = 2 + ndims(mesh)
-    n_nodes = nnodes(solver_dg)
-    n_elements = nelements(semi.solver, semi.cache)
+    n_nodes = nnodes(solver_fv)
+    n_elements = nelements(solver_fv, semi.cache)
+
+    # conflicts when using AMR?
     u_safe = zeros(num_vars * n_nodes^(ndims(mesh)) * n_elements)
 
     node_dg = zeros(2 + ndims(mesh))
@@ -52,25 +52,20 @@
     du_dα = zeros(2 + ndims(mesh))
     dp_du = zeros(2 + ndims(mesh))
 
-    # PositivityPreservingLimiterRuedaGassner(semi_fv, semi_dg, beta, variables, 1)
-    PositivityPreservingLimiterRuedaGassner(semi_fv, semi_dg, beta, variables, 1, 1e-15, 10, u_safe, node_dg, node_tmp, du_dα, dp_du)
+    return (; semi_fv, tolerance, iterations_newton,
+               u_safe, node_dg, node_tmp, du_dα, dp_du)
   end
 
   function (limiter!::PositivityPreservingLimiterRuedaGassner)(
       u_ode, integrator, semi::AbstractSemidiscretization, t)
-
-      #integrator_save = deepcopy(integrator)
+      @unpack alpha = semi.solver.volume_integral.indicator.cache
+      @unpack mesh = semi
+      
       u = wrap_array(u_ode, semi)
-      limiter_rueda_gassner!(u, integrator, semi, limiter!)
-
-      #integrator = deepcopy(integrator_save)
+      limiter_rueda_gassner!(u, alpha, mesh, integrator, semi, limiter!)
 
       # increase stage number in Limiter
-      if limiter!.s == 4
-        limiter!.s = 1
-      else
-        limiter!.s += 1
-      end
+      limiter!.stage == 5 ? limiter!.stage = 1 : limiter!.stage+= 1
       return nothing
   end
  
