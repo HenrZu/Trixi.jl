@@ -64,6 +64,8 @@
       u = wrap_array(u_ode, semi)
       limiter_rueda_gassner!(u, alpha, mesh, integrator, semi, limiter!)
 
+      upper_bound!(u, alpha, mesh, integrator, semi, limiter!)
+
       # increase stage number in Limiter
       limiter!.stage == 5 ? limiter!.stage = 1 : limiter!.stage+= 1
       return nothing

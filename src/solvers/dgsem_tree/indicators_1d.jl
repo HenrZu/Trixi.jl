@@ -87,51 +87,8 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
     end
 
     # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
-
-    
-    # Input for Trainingsdata
-    # Calculate energy in highest modes
-    xi = [(total_energy - total_energy_clip1)/total_energy; (total_energy_clip1 - total_energy_clip2)/total_energy_clip1; nnodes(dg)]
-
-    # Scale
-    xi = xi / max(maximum(abs, xi), one(eltype(xi)))
-
-    # labels
-    yi = zeros(11,1)
-    b = range(0,stop=0.5,length=11)
-    
-    if alpha_element < 0.025
-      alpha_element = 0
-    elseif alpha_element < 0.075
-      alpha_element = 0.5
-    elseif alpha_element < 0.125
-      alpha_element = 0.1
-    elseif alpha_element < 0.175
-      alpha_element = 0.15
-    elseif alpha_element < 0.225
-      alpha_element = 0.2
-    elseif alpha_element < 0.275
-      alpha_element = 0.25
-    elseif alpha_element < 0.325
-      alpha_element = 0.3
-    elseif alpha_element < 0.375
-      alpha_element = 0.35
-    elseif alpha_element < 0.425
-      alpha_element = 0.4
-    elseif alpha_element < 0.475
-      alpha_element = 0.45
-    else
-      alpha_element = 0.5
-    end
-
-    index = findall(x->x == alpha_element, b)
-    
-
-
-    yi[index[1]] = alpha_element
-    push!(indicator_hg.cache.x,xi)
-    push!(indicator_hg.cache.y,yi)
+    factor = 1.0
+    alpha[element] = min(factor * alpha_max , factor * alpha_element)
   end
 
   if alpha_smooth

@@ -34,7 +34,7 @@ initial_condition = initial_condition_sedov
 
 surface_flux = flux_lax_friedrichs
 volume_flux  = flux_ranocha
-basis = LobattoLegendreBasis(7)
+basis = LobattoLegendreBasis(4)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
@@ -48,20 +48,20 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-1.5, -1.5)
 coordinates_max = ( 1.5,  1.5)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
+                initial_refinement_level=6,
                 n_cells_max=100_000)
 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
-limiter! = PositivityPreservingLimiterRuedaGassner(semi, beta = 0.99 ,variables=(Trixi.density, pressure))
+limiter! = PositivityPreservingLimiterRuedaGassner(semi, beta = 0.1)
 stage_limiter! = limiter!
 
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 5)
+tspan = (0.0, 25)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -88,7 +88,10 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
+            
+# sol = solve(ode, SSPRK43(stage_limiter!),
+#             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary
