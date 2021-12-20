@@ -156,31 +156,6 @@
     end
 
 
-    function get_usafe!(u_safe, integrator, semi_fv, s)
-        @unpack t, dt, uprev, f = integrator
-        @unpack k, tmp, williamson_condition, stage_limiter!, step_limiter! = integrator.cache
-        @unpack A2end, B1, B2end, c2end = integrator.cache.tab
-
-        # u1
-        f(k, uprev, semi_fv, t)
-        tmp = dt * k
-        for i in 1:length(uprev)
-            u_safe[i] = uprev[i] + B1 * tmp[i]
-        end
-
-        # other stages
-        if s > 1
-            for i in 1:s-1
-                tmp = A2end[i] * tmp
-                f(k, u_safe, semi_fv, t + c2end[i] * dt)
-                tmp += dt * k
-                for d in 1:length(uprev)
-                    u_safe[d] = u_safe[d] + B2end[i] * tmp[d]
-                end
-            end
-        end
-    end
-
 
     function correct_u!(u::AbstractArray{<:Any,4}, semi, element, u_safe, alpha, cor)
         @unpack solver, equations = semi
