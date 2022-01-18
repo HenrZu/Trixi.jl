@@ -15,6 +15,7 @@
 
     # pure FV solution for stage s
     get_usafe!(u_safe, limiter!, integrator)
+    u_safe = wrap_array(u_safe, semi_fv)
         
     # no need to calculate pure dg sol:
     #        u = (1-α) u_dg + α u_FV
