@@ -61,7 +61,7 @@ stage_limiter! = limiter!
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 25)
+tspan = (0.0, 4)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -88,7 +88,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks, maxiters=1e5);
             

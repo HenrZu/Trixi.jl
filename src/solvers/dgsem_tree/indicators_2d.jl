@@ -6,7 +6,7 @@
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{2}, basis::LobattoLegendreBasis,network::Chain)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -15,8 +15,9 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
   indicator_threaded  = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   modal_threaded      = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
   modal_tmp1_threaded = [A(undef, nnodes(basis), nnodes(basis)) for _ in 1:Threads.nthreads()]
-
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded)
+  X = Float64[]
+  Y = Float64[]
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network , X, Y)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -29,7 +30,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
                                                    mesh, equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded, network = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -41,6 +42,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
   # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
+
 
   @threaded for element in eachelement(dg, cache)
     indicator  = indicator_threaded[Threads.threadid()]
@@ -69,6 +71,10 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
     for j in 1:(nnodes(dg)-2), i in 1:(nnodes(dg)-2)
       total_energy_clip2 += modal[i, j]^2
     end
+    total_energy_clip3 = zero(eltype(modal))
+    for j in 1:(nnodes(dg)-3), i in 1:(nnodes(dg)-3)
+      total_energy_clip3 += modal[i, j]^2
+    end
 
     # Calculate energy in higher modes
     energy = max((total_energy - total_energy_clip1) / total_energy,
@@ -86,10 +92,28 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
       alpha_element = one(alpha_element)
     end
 
+    alpha_element =  0.35 *  alpha_element 
     # Clip the maximum amount of FV allowed
-    alpha[element] = min(alpha_max, alpha_element)
-  end
+    # alpha[element] =   min( alpha_max, alpha_element)
 
+    X1 = (total_energy - total_energy_clip1)/total_energy
+    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
+    X4 = nnodes(dg)
+    network_input = SVector(X1, X2, X3, X4)
+
+    # Scale input data
+    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    out = network(network_input)[1]
+    # out  =  max(network(network_input)[1] ,0)
+    if out < 0.04
+        out = 0.0
+    else out  > 0.5
+       out = out + 0.05
+    end
+    alpha[element] = out 
+
+  end
   if alpha_smooth
     apply_smoothing_2d!(alpha, alpha_tmp, dg, cache)
   end
@@ -359,8 +383,8 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
     probability_troubled_cell = network(network_input)[1]
 
     # Compute indicator value
-    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
-                                              alpha_amr, alpha_min, alpha_max)
+    alpha[element] = probability_troubled_cell # probability_to_indicator(probability_troubled_cell, alpha_continuous,
+                                              #alpha_amr, alpha_min, alpha_max)
   end
 
   if alpha_smooth

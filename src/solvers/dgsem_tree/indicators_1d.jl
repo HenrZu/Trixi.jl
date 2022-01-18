@@ -6,7 +6,7 @@
 
 
 # this method is used when the indicator is constructed as for shock-capturing volume integrals
-function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
+function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis, network::Chain)
 
   alpha = Vector{real(basis)}()
   alpha_tmp = similar(alpha)
@@ -14,10 +14,9 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
   A = Array{real(basis), ndims(equations)}
   indicator_threaded  = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
   modal_threaded      = [A(undef, nnodes(basis)) for _ in 1:Threads.nthreads()]
-  x = Any[]
-  y = Any[]    
+  X = Float64[]
 
-  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,x,y)
+  return (; alpha, alpha_tmp, indicator_threaded, modal_threaded,network, X)
 end
 
 # this method is used when the indicator is constructed as for AMR
@@ -30,7 +29,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
                                                    mesh, equations, dg::DGSEM, cache;
                                                    kwargs...)
   @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded = indicator_hg.cache
+  @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, network = indicator_hg.cache
   # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
   #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
   #       or just `resize!` whenever we call the relevant methods as we do now?
@@ -42,6 +41,9 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
   # magic parameters
   threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
   parameter_s = log((1 - 0.0001)/0.0001)
+
+  # indicator_hg.cache.X = Float64[]
+  max_cor = 0
 
   @threaded for element in eachelement(dg, cache)
     indicator  = indicator_threaded[Threads.threadid()]
@@ -87,10 +89,25 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
     end
 
     # Clip the maximum amount of FV allowed
-    factor = 1.0
+    factor = 1
     alpha[element] = min(factor * alpha_max , factor * alpha_element)
-  end
 
+  #   X1 = (total_energy - total_energy_clip1)/total_energy
+  #   X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+
+  #   network_input = SVector(X1, X2)
+  #   out  =  max(network(network_input)[1] - 0.1,0)
+
+  #   # # if alpha[element] + 0.01  < out && alpha[element] > 0.05
+  #   if out -  alpha[element] > 0.04 &&  alpha[element] > 0.025 && (out - alpha[element]) < 0.05 && alpha[element] < 0.45
+  #     println("Korrigiere Alpha von $(alpha[element]) auf $out")
+  #     println(" Delta von $(alpha[element] - out)")
+  #     max_cor = max(max_cor, out - alpha[element])
+  #     alpha[element] = out
+  #   end
+
+  end
+  # push!(indicator_hg.cache.X, max_cor)
   if alpha_smooth
     apply_smoothing_1d!(alpha, alpha_tmp, dg, cache)
   end
@@ -303,11 +320,20 @@ function (indicator_ann::IndicatorNeuralNetwork{NeuralNetworkPerssonPeraire})(
 
     # Scale input data
     network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    probability_troubled_cell = network(network_input)[1]
+    # probability_troubled_cell = network(network_input)[1]
 
-    # Compute indicator value
-    alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
-                                              alpha_amr, alpha_min, alpha_max)
+    # # Compute indicator value
+    # alpha[element] = probability_to_indicator(probability_troubled_cell, alpha_continuous,
+    #                                           alpha_amr, alpha_min, alpha_max)
+    
+    input =  network(network_input)[1]
+    if input < 0.04
+      input = 0
+    end
+    # alpha[element]  = max(0,input + 0.1)
+    alpha[element]  = input
+    
+
   end
 
   if alpha_smooth

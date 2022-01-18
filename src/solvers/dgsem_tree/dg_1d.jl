@@ -89,6 +89,7 @@ function rhs!(du, u, t,
     have_nonconservative_terms(equations), equations,
     dg.volume_integral, dg, cache)
 
+  # println("Blending Faktor $(dg.volume_integral.indicator.cache.alpha)")
   # Prolong solution to interfaces
   @trixi_timeit timer() "prolong2interfaces" prolong2interfaces!(
     cache, u, mesh, equations, dg.surface_integral, dg)

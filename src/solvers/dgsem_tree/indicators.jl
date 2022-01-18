@@ -39,9 +39,9 @@ function IndicatorHennemannGassner(equations::AbstractEquations, basis;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
-                                   variable)
+                                   variable, network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, equations, basis)
+  cache = create_cache(IndicatorHennemannGassner, equations, basis, network)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end

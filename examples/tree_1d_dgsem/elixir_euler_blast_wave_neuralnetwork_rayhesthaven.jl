@@ -18,13 +18,32 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+function initial_condition_blast_wav(x, t, equations::CompressibleEulerEquations1D)
+    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    # Set up polar coordinates
+  #   inicenter = SVector(0.0)
+  #   x_norm = x[1] - inicenter[1]
+  #   r = abs(x_norm)
+  #   # The following code is equivalent to
+  #   # phi = atan(0.0, x_norm)
+  #   # cos_phi = cos(phi)
+  #   # in 1D but faster
+  #   cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
+  
+    # Calculate primitive variables
+    rho = 2 + sin(4 * pi * x[1])
+    v1  = 0
+    p   = 1
+  
+    return prim2cons(SVector(rho, v1, p), equations)
+end
+initial_condition = initial_condition_blast_wav
 
 equations = CompressibleEulerEquations1D(1.4)
 
-initial_condition = initial_condition_blast_wave
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_chandrashekar
+volume_flux  = flux_ranocha
 basis = LobattoLegendreBasis(3)
 indicator_sc = IndicatorNeuralNetwork(equations, basis,
                                       indicator_type=NeuralNetworkRayHesthaven(),
@@ -43,7 +62,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-2.0,)
 coordinates_max = ( 2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
+                initial_refinement_level=4,
                 n_cells_max=10_000)
 
 
@@ -53,7 +72,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 12.5)
+tspan = (0.0,0.001)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()

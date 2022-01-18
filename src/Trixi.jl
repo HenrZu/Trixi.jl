@@ -41,6 +41,7 @@ using Octavian: matmul!
 using Polyester: @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
+using Statistics
 using RecipesBase
 using Requires
 using SparseArrays: sparse, droptol!, rowvals, nzrange, AbstractSparseMatrix
@@ -55,6 +56,9 @@ using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
 using Plots
+using Flux
+using NNlib
+using BSON: load
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator, DerivativeOperator, grid

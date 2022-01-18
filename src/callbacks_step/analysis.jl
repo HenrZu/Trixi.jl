@@ -422,6 +422,10 @@ function analyze_integrals(analysis_integrals::NTuple{N,Any}, io, du, u, t, semi
   remaining_quantities = Base.tail(analysis_integrals)
 
   res = analyze(quantity, du, u, t, semi)
+  # if quantity == entropy
+  #   push!(semi.solver.volume_integral.indicator.cache.Y,t)
+  #   push!(semi.solver.volume_integral.indicator.cache.Y,res)
+  # end
   if mpi_isroot()
     @printf(" %-12s:", pretty_form_utf(quantity))
     @printf("  % 10.8e", res)
