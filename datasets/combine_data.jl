@@ -28,7 +28,7 @@ function get_label(X1,X2,nnodes)
 end
 
 
-list_data = readdir("datasets//1d_files")
+list_data = readdir("datasets//1d_limiter")
 
 dataset_x1 = Float64[]
 dataset_x2 = Float64[]
@@ -43,11 +43,11 @@ for data in list_data
     
     println("Für folgendes Data set hinzu $data")
 
-    Y = h5open(joinpath("datasets","1d_files",data), "r") do file
+    Y = h5open(joinpath("datasets","1d_limiter",data), "r") do file
         read(file, "Y")
     end
     
-    X = h5open(joinpath("datasets","1d_files",data), "r") do file
+    X = h5open(joinpath("datasets","1d_limiter",data), "r") do file
         read(file, "X")
     end
 
@@ -78,7 +78,7 @@ println(size(labels))
 
 
 # save data
-h5open("datasets//1d_indicator_final.h5", "w") do file
+h5open("datasets//1d_indicator_final_2.h5", "w") do file
     write(file, "X", X_new)
     write(file, "Y", labels)
 end

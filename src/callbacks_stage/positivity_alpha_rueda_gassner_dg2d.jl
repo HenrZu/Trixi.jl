@@ -10,9 +10,9 @@
     @unpack alpha_max = semi.solver.volume_integral.indicator
     @unpack beta, stage = limiter!
     @unpack semi_fv, tolerance, iterations_newton, u_safe, u_latest_stage,
-            tmp_lates_stage, node_dg, node_tmp, du_dα, dp_du, alpha_max  = limiter!.cache
+            tmp_lates_stage, node_dg, node_tmp, du_dα, dp_du  = limiter!.cache
 
-
+    alpha_max = 1
     # calc pure FV solution to stage s
     get_usafe!(u_safe, limiter!, integrator) 
     u_safe = wrap_array(u_safe, semi_fv)

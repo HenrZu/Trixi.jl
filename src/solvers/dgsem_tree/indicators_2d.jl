@@ -92,9 +92,9 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
       alpha_element = one(alpha_element)
     end
 
-    alpha_element =  0.35 *  alpha_element 
+    alpha_element =  1.0 *  alpha_element 
     # Clip the maximum amount of FV allowed
-    # alpha[element] =   min( alpha_max, alpha_element)
+    alpha[element] =   min( alpha_max, alpha_element)
 
     X1 = (total_energy - total_energy_clip1)/total_energy
     X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
@@ -105,13 +105,17 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
     # Scale input data
     network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
     out = network(network_input)[1]
-    # out  =  max(network(network_input)[1] ,0)
-    if out < 0.04
-        out = 0.0
-    else out  > 0.5
-       out = out + 0.05
+    if out - alpha[element] > 0.05
+      alpha[element] = out
     end
-    alpha[element] = out 
+
+    # out  =  max(network(network_input)[1] ,0)
+    # if out < 0.04
+    #     out = 0.0
+    # else out  > 0.5
+    #    out = out + 0.05
+    # end
+    # alpha[element] = out 
 
   end
   if alpha_smooth

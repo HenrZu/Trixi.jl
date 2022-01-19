@@ -92,22 +92,20 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,3},
     factor = 1
     alpha[element] = min(factor * alpha_max , factor * alpha_element)
 
-  #   X1 = (total_energy - total_energy_clip1)/total_energy
-  #   X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    X1 = (total_energy - total_energy_clip1)/total_energy
+    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
 
-  #   network_input = SVector(X1, X2)
-  #   out  =  max(network(network_input)[1] - 0.1,0)
 
-  #   # # if alpha[element] + 0.01  < out && alpha[element] > 0.05
-  #   if out -  alpha[element] > 0.04 &&  alpha[element] > 0.025 && (out - alpha[element]) < 0.05 && alpha[element] < 0.45
-  #     println("Korrigiere Alpha von $(alpha[element]) auf $out")
-  #     println(" Delta von $(alpha[element] - out)")
-  #     max_cor = max(max_cor, out - alpha[element])
-  #     alpha[element] = out
-  #   end
+    network_input = SVector(X1, X2, nnodes(dg))
+    # Scale input data
+    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    out  = network(network_input)[1]
+
+    if out -  alpha[element] > 0.1 
+      alpha[element] = out
+    end
 
   end
-  # push!(indicator_hg.cache.X, max_cor)
   if alpha_smooth
     apply_smoothing_1d!(alpha, alpha_tmp, dg, cache)
   end
