@@ -62,7 +62,6 @@ using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using UnPack: @unpack
 using UnPack: @pack!
-using Plots
 using Flux
 using NNlib
 using BSON: load
