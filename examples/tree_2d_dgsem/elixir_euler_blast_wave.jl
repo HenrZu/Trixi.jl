@@ -16,7 +16,15 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-function initial_condition_blast_wav(x, t, equations::CompressibleEulerEquations2D)
+"""
+    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+
+A medium blast wave taken from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
   # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
   # Set up polar coordinates
   inicenter = SVector(0.0, 0.0)
@@ -28,14 +36,12 @@ function initial_condition_blast_wav(x, t, equations::CompressibleEulerEquations
 
   # Calculate primitive variables
   rho = r > 0.5 ? 1.0 : 1.1691
-  v1  = 0 #r > 0.5 ? 0.0 : 0.1882 * cos_phi
-  v2  = 0 #r > 0.5 ? 0.0 : 0.1882 * sin_phi
+  v1  = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+  v2  = r > 0.5 ? 0.0 : 0.1882 * sin_phi
   p   = r > 0.5 ? 1.0E-3 : 1.245
 
   return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-
-
 initial_condition = initial_condition_blast_wave
 
 surface_flux = flux_lax_friedrichs
@@ -51,8 +57,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv=surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2, -2)
-coordinates_max = ( 2,  2)
+coordinates_min = (-2.0, -2.0)
+coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=6,
                 n_cells_max=10_000)
@@ -98,5 +104,5 @@ step_limiter! = limiter!
 sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
 # sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks, maxiters=1e5);
+            save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

@@ -54,8 +54,8 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 
 # solver = DGSEM(basis, surface_flux, volume_integral) #=VolumeIntegralPureLGLFiniteVolume(flux_hllc))
 
-coordinates_min = 0
-coordinates_max =  6
+coordinates_min = -1.0
+coordinates_max =  1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level=2,
                 n_cells_max=30_000)

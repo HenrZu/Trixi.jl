@@ -6,20 +6,8 @@ using Plots
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-surface_flux = flux_lax_friedrichs
-function initial_condition_shock(x, t, equation::LinearScalarAdvectionEquation1D)
-    inicenter = SVector(0.0)
-    x_norm = x[1] - inicenter[1]
-    if x_norm[1] <= 0.6  && x_norm[1] >= 0.3
-      u = 1
-    else
-      u = 0 
-    end
-    return SVector(u)
-end
-
-advectionvelocity = 1.0
-equations = LinearScalarAdvectionEquation1D(advectionvelocity)
+advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 # function boundary_condition_convergence_test(u_inner, orientation, direction, x, t,
 #   surface_flux_function,
@@ -48,11 +36,8 @@ boundary_conditions =  BoundaryConditionDirichlet(initial_condition_shock)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 # solver = DGSEM(polydeg=5, surface_flux = surface_flux)
 
-solver = DGSEM(polydeg=1, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralPureLGLFiniteVolume(surface_flux))
-
-coordinates_min = 0 # minimum coordinate
-coordinates_max = 1 # maximum coordinat
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max =  1.0 # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
