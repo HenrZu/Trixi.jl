@@ -7,8 +7,8 @@
 
 abstract type AbstractIndicator end
 
-function create_cache(typ::Type{IndicatorType}, semi) where {IndicatorType<:AbstractIndicator}
-  create_cache(typ, mesh_equations_solver_cache(semi)...)
+function create_cache(typ::Type{IndicatorType}, semi, network) where {IndicatorType<:AbstractIndicator}
+  create_cache(typ, mesh_equations_solver_cache(semi)..., network)
 end
 
 function get_element_variables!(element_variables, indicator::AbstractIndicator, ::VolumeIntegralShockCapturingHG)
@@ -51,9 +51,9 @@ function IndicatorHennemannGassner(semi::AbstractSemidiscretization;
                                    alpha_max=0.5,
                                    alpha_min=0.001,
                                    alpha_smooth=true,
-                                   variable)
+                                   variable, network)
   alpha_max, alpha_min = promote(alpha_max, alpha_min)
-  cache = create_cache(IndicatorHennemannGassner, semi)
+  cache = create_cache(IndicatorHennemannGassner, semi, network)
   IndicatorHennemannGassner{typeof(alpha_max), typeof(variable), typeof(cache)}(
     alpha_max, alpha_min, alpha_smooth, variable, cache)
 end

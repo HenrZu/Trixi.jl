@@ -5,7 +5,7 @@ using BSON: load
 # network = joinpath(@__DIR__, "modelnnpp-0.904-0.0005.bson")
 # download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.904-0.0005.bson", network)
 # model2d = load("datasets//2d_indicator.bson")[:model2d]
-model2d = load("2d_indicator_unlimited.bson")[:model2d]
+model1d = load("1d_indicator.bson")[:model1d]
 
 using OrdinaryDiffEq
 using Trixi
@@ -55,7 +55,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.5,
                                          alpha_min=0.001,
                                          alpha_smooth=true,
-                                         variable=density_pressure, network = model2d)
+                                         variable=density_pressure, network = model1d)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -107,7 +107,7 @@ step_limiter! = limiter!
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, step_limiter!, williamson_condition=false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

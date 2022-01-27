@@ -1,3 +1,11 @@
+using Downloads: download
+using Flux
+using NNlib
+using BSON: load
+# network = joinpath(@__DIR__, "modelnnpp-0.904-0.0005.bson")
+# download("https://gist.github.com/JuliaOd/97728c2c15d6a7255ced6e46e3a605b6/raw/modelnnpp-0.904-0.0005.bson", network)
+# model2d = load("datasets//2d_indicator.bson")[:model2d]
+model2d = load("2d_indicator_unlimited.bson")[:model2d]
 
 using OrdinaryDiffEq
 using Trixi
@@ -47,7 +55,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max=0.3, 
                                          alpha_min=0.0001,
                                          alpha_smooth=true,
-                                         variable=density_pressure)
+                                         variable=density_pressure, network = model2d)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg=volume_flux,
                                                  volume_flux_fv=surface_flux)
@@ -76,7 +84,7 @@ analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=5000,
+save_solution = SaveSolutionCallback(interval= 100,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
@@ -85,7 +93,7 @@ amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max=1.0,                                            
                                           alpha_min=0.0001,                                         
                                           alpha_smooth=false,                                       
-                                          variable=Trixi.density)                                   
+                                          variable=Trixi.density, network = model2d)                                 
                                                                                                     
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,                    
                                               base_level=2,                                         
@@ -109,6 +117,6 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
-sol = solve(ode, SSPRK43(stage_limiter!),
+sol = solve(ode, SSPRK43(),
             save_everystep=false, callback=callbacks);
 summary_callback() # print the timer summary

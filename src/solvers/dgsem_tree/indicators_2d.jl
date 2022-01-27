@@ -21,8 +21,8 @@ function create_cache(::Type{IndicatorHennemannGassner}, equations::AbstractEqua
 end
 
 # this method is used when the indicator is constructed as for AMR
-function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache)
-  create_cache(typ, equations, dg.basis)
+function create_cache(typ::Type{IndicatorHennemannGassner}, mesh, equations::AbstractEquations{2}, dg::DGSEM, cache, network)
+  create_cache(typ, equations, dg.basis, network)
 end
 
 
@@ -96,25 +96,25 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
     # Clip the maximum amount of FV allowed
     alpha[element] =   min( alpha_max, alpha_element)
 
-    X1 = (total_energy - total_energy_clip1)/total_energy
-    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
-    X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
-    X4 = nnodes(dg)
-    network_input = SVector(X1, X2, X3, X4)
+    # X1 = (total_energy - total_energy_clip1)/total_energy
+    # X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    # X3 = (total_energy_clip2 - total_energy_clip3)/total_energy_clip2
+    # X4 = nnodes(dg)
+    # network_input = SVector(X1, X2, X3, X4)
 
-    # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    out = network(network_input)[1]
-    if out - alpha[element] > 0.05
-      alpha[element] = out
-    end
-
-    # out  =  max(network(network_input)[1] ,0)
-    # if out < 0.04
-    #     out = 0.0
-    # else out  > 0.5
-    #    out = out + 0.05
+    # # Scale input data
+    # network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    # out = network(network_input)[1]
+    # if out - alpha[element] > 0.05
+    #   alpha[element] = out
     # end
+
+    # # out  =  max(network(network_input)[1] ,0)
+    # # if out < 0.2
+    # #     out = 0.0
+    # # elseif out > 0.3
+    # #     out = out + 0.2
+    # # end
     # alpha[element] = out 
 
   end
