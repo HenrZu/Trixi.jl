@@ -84,7 +84,7 @@
       # end
 
       
-
+      # Deactivate here, if no limiter needed (e.g. Fig6.4)
       limiter_rueda_gassner!(u, alpha, mesh, integrator, semi, limiter!)
 
       if t > 0.0
@@ -108,6 +108,8 @@
       #   limiter!.data = Float64[]
       #   push!(limiter!.labels , t)
       # end
+
+      ## Uncomment to save Max and Mean values #######
 
       # # maximal coefficient
       # max_a = maximum(alpha)

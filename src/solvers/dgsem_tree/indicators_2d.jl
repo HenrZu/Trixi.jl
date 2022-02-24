@@ -92,9 +92,11 @@ function (indicator_hg::IndicatorHennemannGassner)(u::AbstractArray{<:Any,4},
       alpha_element = one(alpha_element)
     end
 
-    alpha_element =  1.0 *  alpha_element 
-    # Clip the maximum amount of FV allowed
+    # Clip the maximum amount of FV allowed 
+    # Put in comment for pure NN Indicator case
     alpha[element] =   min( alpha_max, alpha_element)
+
+    # Activate when using NN Limiter for positivity
 
     # X1 = (total_energy - total_energy_clip1)/total_energy
     # X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1

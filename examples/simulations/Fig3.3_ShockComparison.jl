@@ -1,11 +1,3 @@
-
-using OrdinaryDiffEq
-using Trixi
-using Plots
-
-###############################################################################
-# semidiscretization of the linear advection equation
-
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
@@ -14,7 +6,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 function initial_condition_shock(x, t, equation::LinearScalarAdvectionEquation1D)
 
     x_trans = x - equation.advection_velocity * t
-    if x_trans >= 0.3 && x_trans <= 0.6
+    if x_trans[1] >= 0.3 && x_trans[1] <= 0.6
         scalar = 1
     else
         scalar = 0
@@ -27,14 +19,19 @@ boundary_conditions =  BoundaryConditionDirichlet(initial_condition_shock)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 surface_flux        = flux_lax_friedrichs
+
+# For pure FV
+# volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+# solver = DGSEM(basis, surface_flux, volume_integral)
+
 solver = DGSEM(polydeg=5, surface_flux = surface_flux)
 
-coordinates_min = -1.0 # minimum coordinate
+coordinates_min = 0.0 # minimum coordinate
 coordinates_max =  1.0 # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=3,
+                initial_refinement_level=6,
                 n_cells_max=30_000) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -73,7 +70,11 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep=false, callback=callbacks);
 
-# Print the timer summary
-summary_callback()
-
-plot(sol)
+# to save Data (possible solution -  may exist better ones)
+# pd = PlotData1D(sol)
+# t = pd.x
+# y = pd.data
+# using DelimitedFiles
+# open("n3_exact.txt", "w") do io
+# 	writedlm(io, [t y])
+# end

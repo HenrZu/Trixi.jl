@@ -89,21 +89,23 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh::Union{TreeMesh{1}, S
     end
 
     # Clip the maximum amount of FV allowed
-    factor = 1
-    alpha[element] = min(factor * alpha_max , factor * alpha_element)
-
-    X1 = (total_energy - total_energy_clip1)/total_energy
-    X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
+    # Put in comment for pure NN Indicator case
+    alpha[element] = min(alpha_max , alpha_element)
 
 
-    network_input = SVector(X1, X2, nnodes(dg))
-    # Scale input data
-    network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
-    out  = network(network_input)[1]
+      # Activate when using NN Limiter for positivity
+    # X1 = (total_energy - total_energy_clip1)/total_energy
+    # X2 = (total_energy_clip1 - total_energy_clip2)/total_energy_clip1
 
-    if out -  alpha[element] > 0.1 
-      alpha[element] = out
-    end
+
+    # network_input = SVector(X1, X2, nnodes(dg))
+    # # Scale input data
+    # network_input = network_input / max(maximum(abs, network_input), one(eltype(network_input)))
+    # out  = network(network_input)[1]
+
+    # if out - alpha[element] > 0.05
+    #   alpha[element] = out
+    # end
 
   end
   if alpha_smooth
